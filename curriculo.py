@@ -106,12 +106,12 @@ def melhorar_texto_com_ia(texto_bruto, api_key):
 # --- 3. INTERFACE STREAMLIT ---
 st.set_page_config(page_title="Gerador de Currículo Inteligente", layout="wide")
 
-# Barra lateral para colocar a chave da IA
-with st.sidebar:
-    st.header("⚙️ Configuração da Inteligência Artificial")
-    st.write("Para a IA analisar as experiências, cole sua chave do Google Gemini abaixo:")
-    chave_api = st.text_input("Chave API (Gemini)", type="password")
-    st.info("Sem a chave, o app vai gerar o currículo com o texto exatamente como você digitar.")
+# Puxa a chave invisível diretamente dos segredos (Secrets) do Streamlit
+try:
+    chave_api = st.secrets["GEMINI_API_KEY"]
+except:
+    chave_api = ""
+    st.error("Aviso para o Desenvolvedor: Configure a GEMINI_API_KEY nos Secrets do Streamlit Cloud.")
 
 st.title("🚀 Gerador de Currículo")
 st.write("Preencha os dados e deixe a Inteligência Artificial organizar sua experiência.")
