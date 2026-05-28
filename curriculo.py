@@ -185,7 +185,7 @@ with col_p1:
     email = st.text_input("E-mail", placeholder="Ex: email@gmail.com")
     telefone = st.text_input("Telefone (WhatsApp)", placeholder="(11) 99999-9999")
 with col_p2:
-    idade = st.number_input("Idade", min_value=14, max_value=100, value=21)
+    idade = st.number_input("Idade", min_value=14, max_value=100, value=20)
     cidade = st.text_input("Cidade/UF", placeholder="Ex: São Paulo - SP")
     linkedin = st.text_input("LinkedIn (Opcional)", placeholder="linkedin.com/in/seu-perfil")
 
@@ -215,7 +215,7 @@ if tem_experiencia:
 else:
     st.subheader("🎯 3. Objetivo e Competências")
     st.write("Como você busca o primeiro emprego, vamos focar no seu perfil e vontade de aprender. Escreva seu objetivo de forma simples e nossa Inteligência Artificial deixará profissional!")
-    objetivo = st.text_input("Qual o seu objetivo profissional?", placeholder="Ex: quero trabalhar de adm pra ajudar em ksa...")
+    objetivo = st.text_input("Qual o seu objetivo profissional?", placeholder="Ex: Busco minha primeira oportunidade na área de administração...")
     soft_skills = st.text_area(
         "Quais são suas competências? (Soft Skills - Separe por vírgula ou Enter)", 
         placeholder="Ex: Trabalho em equipe, Comunicação clara, Proatividade, Organização...",
