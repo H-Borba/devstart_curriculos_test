@@ -182,7 +182,7 @@ st.subheader("👤 1. Dados Pessoais e Contato")
 col_p1, col_p2 = st.columns(2)
 with col_p1:
     nome = st.text_input("Nome Completo", placeholder="Ex: Nome Sobrenome")
-    email = st.text_input("E-mail", placeholder="Ex: email@gmail.com")
+    email = st.text_input("E-mail", placeholder="Ex: fulano@gmail.com")
     telefone = st.text_input("Telefone (WhatsApp)", placeholder="(11) 99999-9999")
 with col_p2:
     idade = st.number_input("Idade", min_value=14, max_value=100, value=20)
