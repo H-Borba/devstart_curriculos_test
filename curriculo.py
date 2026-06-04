@@ -269,7 +269,7 @@ else:
     objetivo = st.text_input("Qual o seu objetivo profissional?", placeholder="Ex: Busco minha primeira oportunidade na área de administração...")
     soft_skills = st.text_area(
         "Quais são as suas competências? (Soft Skills - Separe por vírgula ou Enter)", 
-        placeholder="Ex: Sou isforçado, pego peso, chego no orario...",
+        placeholder="Ex: Trabalho em equipe, Comunicação clara, Proatividade, Organização...",
         height=100
     )
 
