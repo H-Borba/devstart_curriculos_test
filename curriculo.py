@@ -60,7 +60,9 @@ def gerar_curriculo_ats(dados):
             habilidades = dados['soft_skills'].replace(',', '\n').split('\n')
             for hab in habilidades:
                 if hab.strip():
-                    pdf.cell(0, 6, f"- {hab.strip()}", ln=True)
+                    # Removemos hífens duplicados caso a IA ou o utilizador os coloque
+                    texto_hab = hab.strip().lstrip('-').strip()
+                    pdf.cell(0, 6, f"- {texto_hab}", ln=True)
             pdf.ln(5)
 
     # --- Formação Acadêmica/Escolar (AGORA COM LÓGICA DE DATAS) ---
@@ -119,7 +121,7 @@ def melhorar_experiencia_ia(texto_bruto):
     client = genai.Client(api_key=CHAVE_API_GEMINI.strip())
     prompt = f"""
     Você é um recrutador sênior otimizando o currículo de um candidato.
-    O candidato descreveu suas experiências abaixo. 
+    O candidato descreveu as suas experiências abaixo. 
     
     Sua tarefa:
     1. Organize o texto separando as experiências.
@@ -151,24 +153,41 @@ def melhorar_objetivo_ia(texto_bruto):
     resposta = client.models.generate_content(model='gemini-flash-latest', contents=prompt)
     return resposta.text.strip()
 
+# Cérebro 3: NOVO - Para corrigir as Competências (Soft Skills)
+def melhorar_soft_skills_ia(texto_bruto):
+    client = genai.Client(api_key=CHAVE_API_GEMINI.strip())
+    prompt = f"""
+    Você é um especialista em RH a analisar as competências (soft skills) de um candidato em busca do primeiro emprego.
+    O candidato listou as suas competências de forma informal e com possíveis erros ortográficos:
+    "{texto_bruto}"
+    
+    Sua tarefa:
+    1. Corrija os erros ortográficos.
+    2. Transforme as frases informais em termos profissionais e concisos de RH (ex: "sou isforçado" vira "Dedicação e Proatividade").
+    3. Retorne os itens separados apenas por uma quebra de linha (Enter).
+    4. Não use bolinhas, nem hífens na resposta. Retorne APENAS a lista de competências.
+    """
+    resposta = client.models.generate_content(model='gemini-flash-latest', contents=prompt)
+    return resposta.text.strip()
+
 
 # --- 4. INTERFACE STREAMLIT ---
 st.set_page_config(page_title="DevStart - Gerador de Currículo", layout="wide")
 
-# --- TELA DE BOAS-VINDAS E APRESENTAÇÃO ---
+# --- ECRÃ DE BOAS-VINDAS E APRESENTAÇÃO ---
 st.title("🚀 Bem-vindo ao DevStart Currículos")
 st.info("""
-**Nosso objetivo é ajudar você a estruturar da melhor forma o seu currículo!**
+**O nosso objetivo é ajudar a estruturar da melhor forma o seu currículo!**
 
 Sabemos que grandes empresas utilizam Inteligência Artificial para fazer a triagem de candidatos (sistemas ATS). 
 Por isso, criamos esta ferramenta gratuita para formatar o seu currículo de um jeito limpo e otimizado, 
-garantindo que os robôs dos recrutadores consigam ler suas informações perfeitamente e destacar o seu potencial.
+garantindo que os robôs dos recrutadores consigam ler as suas informações perfeitamente e destacar o seu potencial.
 """)
 
 st.markdown("---")
 
 # --- A GRANDE ESCOLHA (DIVISÃO DE JORNADA) ---
-st.subheader("Para começarmos, você possui experiência profissional?")
+st.subheader("Para começarmos, possui experiência profissional?")
 
 opcoes_jornada = [
     "Sim, possuo experiência profissional", 
@@ -182,7 +201,7 @@ escolha_jornada = st.radio(
 )
 
 st.markdown("---")
-st.write("### Preencha seus dados abaixo:")
+st.write("### Preencha os seus dados abaixo:")
 
 # --- DADOS PESSOAIS (COMUM) ---
 st.subheader("👤 1. Dados Pessoais e Contato")
@@ -199,12 +218,11 @@ with col_p2:
 # --- FORMAÇÃO E CURSOS (COMUM) ---
 st.subheader("🎓 2. Formação e Cursos")
 
-# Nova opção para quem não tem escolaridade
 opcoes_escolaridade = [
     "Sim, possuo escolaridade formal",
     "Não possuo escolaridade formal"
 ]
-escolha_formacao = st.radio("Você possui alguma formação acadêmica ou escolar?", opcoes_escolaridade)
+escolha_formacao = st.radio("Possui alguma formação académica ou escolar?", opcoes_escolaridade)
 
 local_estudo = ""
 status_estudo = ""
@@ -224,7 +242,7 @@ else:
 
 certificacoes = st.text_area("Cursos Extras (um por linha) - Opcional", placeholder="Ex: Pacote Office - Fundação Bradesco\nInglês Básico - Fisk")
 
-# --- SEÇÃO DINÂMICA (DEPENDE DA ESCOLHA DE EXPERIÊNCIA) ---
+# --- SECÇÃO DINÂMICA (DEPENDE DA ESCOLHA DE EXPERIÊNCIA) ---
 tem_experiencia = (escolha_jornada == opcoes_jornada[0])
 
 exp_texto = ""
@@ -233,15 +251,15 @@ soft_skills = ""
 
 if tem_experiencia:
     st.subheader("💼 3. Experiência Profissional")
-    st.write("Escreva como se estivesse conversando. Ex: 'Trabalhei de atendente de janeiro a agosto de 2024 na loja X, eu fechava caixa e ajudava clientes no zap'. A IA vai transformar isso em algo profissional!")
-    exp_texto = st.text_area("Descreva suas experiências:", height=150)
+    st.write("Escreva como se estivesse a conversar. Ex: 'Trabalhei de atendente de janeiro a agosto de 2024 na loja X, eu fechava caixa e ajudava clientes no zap'. A IA vai transformar isso em algo profissional!")
+    exp_texto = st.text_area("Descreva as suas experiências:", height=150)
 else:
     st.subheader("🎯 3. Objetivo e Competências")
-    st.write("Como você busca o primeiro emprego, vamos focar no seu perfil e vontade de aprender. Escreva seu objetivo de forma simples e nossa Inteligência Artificial deixará profissional!")
+    st.write("Como procura o primeiro emprego, vamos focar no seu perfil e vontade de aprender. Escreva as suas informações de forma simples e a nossa Inteligência Artificial vai deixá-las num tom profissional!")
     objetivo = st.text_input("Qual o seu objetivo profissional?", placeholder="Ex: Busco minha primeira oportunidade na área de administração...")
     soft_skills = st.text_area(
-        "Quais são suas competências? (Soft Skills - Separe por vírgula ou Enter)", 
-        placeholder="Ex: Trabalho em equipe, Comunicação clara, Proatividade, Organização...",
+        "Quais são as suas competências? (Soft Skills - Separe por vírgula ou Enter)", 
+        placeholder="Ex: Sou isforçado, pego peso, chego no orario...",
         height=100
     )
 
@@ -250,12 +268,13 @@ st.markdown("---")
 if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
     if not nome:
         st.error("Por favor, preencha pelo menos o seu Nome Completo.")
-    elif not CHAVE_API_GEMINI and (exp_texto.strip() != "" or objetivo.strip() != ""):
+    elif not CHAVE_API_GEMINI and (exp_texto.strip() != "" or objetivo.strip() != "" or soft_skills.strip() != ""):
         st.error("Erro: A chave da API não foi encontrada nas configurações (Secrets) do Streamlit.")
     else:
-        with st.spinner("Construindo o seu currículo (A Inteligência Artificial está trabalhando)..."):
+        with st.spinner("A construir o seu currículo (A Inteligência Artificial está a trabalhar)..."):
             texto_experiencia_final = exp_texto
             objetivo_final = objetivo
+            soft_skills_final = soft_skills
             
             # --- ACIONA A IA PARA EXPERIÊNCIA ---
             if tem_experiencia and exp_texto.strip() != "":
@@ -264,18 +283,25 @@ if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
                 except Exception as e:
                     st.error(f"Erro ao conectar com a IA (Experiência). (Detalhes: {e})")
                     
-            # --- ACIONA A IA PARA O OBJETIVO ---
-            elif not tem_experiencia and objetivo.strip() != "":
-                try:
-                    objetivo_final = melhorar_objetivo_ia(objetivo)
-                except Exception as e:
-                    st.error(f"Erro ao conectar com a IA (Objetivo). (Detalhes: {e})")
+            # --- ACIONA A IA PARA O OBJETIVO E SKILLS ---
+            elif not tem_experiencia:
+                if objetivo.strip() != "":
+                    try:
+                        objetivo_final = melhorar_objetivo_ia(objetivo)
+                    except Exception as e:
+                        st.error(f"Erro ao conectar com a IA (Objetivo). (Detalhes: {e})")
+                        
+                if soft_skills.strip() != "":
+                    try:
+                        soft_skills_final = melhorar_soft_skills_ia(soft_skills)
+                    except Exception as e:
+                        st.error(f"Erro ao conectar com a IA (Competências). (Detalhes: {e})")
 
             # Montando a estrutura para o PDF
             dados_usuario = {
                 "nome": nome, "email": email, "telefone": telefone, "cidade": cidade, "idade": idade, "linkedin": linkedin,
                 "objetivo": objetivo_final, 
-                "soft_skills": soft_skills,
+                "soft_skills": soft_skills_final, # Passando as competências já processadas pela IA
                 "possui_formacao": (escolha_formacao == opcoes_escolaridade[0]),
                 "formacao_local": local_estudo,
                 "formacao_curso": curso_estudo,
