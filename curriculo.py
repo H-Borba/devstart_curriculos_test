@@ -232,7 +232,7 @@ opcoes_escolaridade = [
     "Sim, possuo escolaridade formal",
     "Não possuo escolaridade formal"
 ]
-escolha_formacao = st.radio("Possui alguma formação académica ou escolar?", opcoes_escolaridade)
+escolha_formacao = st.radio("Possui alguma formação acadêmica ou escolar?", opcoes_escolaridade)
 
 local_estudo = ""
 status_estudo = ""
@@ -246,7 +246,7 @@ if escolha_formacao == opcoes_escolaridade[0]:
         status_estudo = st.selectbox("Status", ["Concluído", "Em andamento", "Trancado", "Incompleto"])
     with col_f2:
         curso_estudo = st.text_input("Curso / Nível", placeholder="Ex: Ciência da Computação ou Ensino Médio")
-        data_conclusao = st.text_input("Data de Conclusão / Previsão", placeholder="Ex: Dezembro/2028 ou 2020")
+        data_conclusao = st.text_input("Data de Conclusão / Previsão", placeholder="Ex: Dezembro/2028")
 else:
     st.info("Sem problemas! Vamos focar nos seus cursos extras, habilidades e experiências para destacar o seu perfil.")
 
