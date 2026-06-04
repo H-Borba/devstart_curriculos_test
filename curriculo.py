@@ -48,6 +48,7 @@ def gerar_curriculo_ats(dados):
         if dados['objetivo'].strip():
             pdf.section_title("OBJETIVO PROFISSIONAL")
             pdf.set_font('Arial', '', 11)
+            # Limpeza rápida de aspas da IA
             obj_seguro = dados['objetivo'].replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
             pdf.multi_cell(0, 6, obj_seguro)
             pdf.ln(5)
@@ -59,28 +60,37 @@ def gerar_curriculo_ats(dados):
             habilidades = dados['soft_skills'].replace(',', '\n').split('\n')
             for hab in habilidades:
                 if hab.strip():
+                    # Removemos hífens duplicados caso a IA ou o utilizador os coloque
                     texto_hab = hab.strip().lstrip('-').strip()
                     pdf.cell(0, 6, f"- {texto_hab}", ln=True)
             pdf.ln(5)
 
     # --- Formação Acadêmica/Escolar (TÍTULO DINÂMICO E SEM REPETIÇÃO) ---
     if dados['possui_formacao'] and dados['formacao_local'].strip():
-        # Altera o título dinamicamente conforme o nível escolhido
-        pdf.section_title(dados['tipo_formacao_titulo'])
+        # A Mágica do Título: Verifica se a pessoa digitou "Médio" ou "Fundamental" no curso
+        curso_texto = dados['formacao_curso'].lower()
+        if "médio" in curso_texto or "medio" in curso_texto or "fundamental" in curso_texto:
+            titulo_formacao = "FORMAÇÃO ESCOLAR"
+        else:
+            titulo_formacao = "FORMAÇÃO ACADÊMICA"
+            
+        pdf.section_title(titulo_formacao)
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 6, dados['formacao_local'], ln=True)
         
         pdf.set_font('Arial', '', 11)
         
-        # Remove a repetição eliminando o status de fora quando a data existe
+        # A Mágica da Formatação de Datas sem repetição
         if dados['formacao_data'].strip():
-            if dados['formacao_status'] == "Concluído":
-                linha_curso = f"{dados['formacao_curso']} (Concluído em {dados['formacao_data']})"
-            elif dados['formacao_status'] == "Em andamento":
+            if dados['formacao_status'] == "Em andamento":
                 linha_curso = f"{dados['formacao_curso']} (Previsão de conclusão: {dados['formacao_data']})"
+            elif dados['formacao_status'] == "Concluído":
+                linha_curso = f"{dados['formacao_curso']} (Concluído em {dados['formacao_data']})"
             else:
+                # Fallback para Trancado/Incompleto
                 linha_curso = f"{dados['formacao_curso']} - {dados['formacao_status']} ({dados['formacao_data']})"
         else:
+            # Caso a pessoa não tenha digitado data nenhuma
             linha_curso = f"{dados['formacao_curso']} - {dados['formacao_status']}"
             
         pdf.cell(0, 6, linha_curso, ln=True)
@@ -100,13 +110,13 @@ def gerar_curriculo_ats(dados):
         pdf.multi_cell(0, 6, texto_seguro)
         pdf.ln(5)
 
-    # --- Cursos e Certificações (APENAS NOME - INSTITUIÇÃO) ---
+    # --- Cursos e Certificações (APENAS NOME DO CURSO - INSTITUIÇÃO) ---
     cursos_validos = [c for c in dados['cursos'] if c.strip() != ""]
     if len(cursos_validos) > 0:
         pdf.section_title("CURSOS EXTRAS E CERTIFICAÇÕES")
         pdf.set_font('Arial', '', 11)
         for curso in cursos_validos:
-            # Imprime direto o texto da linha sem colocar o hífen automático no começo
+            # Imprime o texto direto, sem colocar o hífen ("- ") antes
             pdf.cell(0, 6, curso.strip(), ln=True)
 
     nome_arquivo = f"CV_{dados['nome'].replace(' ', '_')}.pdf"
@@ -116,6 +126,7 @@ def gerar_curriculo_ats(dados):
 
 # --- 3. OS CÉREBROS DA IA ---
 
+# Cérebro 1: Para quem tem experiência
 def melhorar_experiencia_ia(texto_bruto):
     client = genai.Client(api_key=CHAVE_API_GEMINI.strip())
     prompt = f"""
@@ -135,6 +146,7 @@ def melhorar_experiencia_ia(texto_bruto):
     resposta = client.models.generate_content(model='gemini-flash-latest', contents=prompt)
     return resposta.text.strip()
 
+# Cérebro 2: Para quem NÃO tem experiência (Foco no Objetivo)
 def melhorar_objetivo_ia(texto_bruto):
     client = genai.Client(api_key=CHAVE_API_GEMINI.strip())
     prompt = f"""
@@ -145,12 +157,13 @@ def melhorar_objetivo_ia(texto_bruto):
     Sua tarefa:
     1. Corrija qualquer erro ortográfico ou gramatical.
     2. Torne o texto mais profissional, proativo e claro, demonstrando vontade de aprender.
-    3. Mantenha o texto curto e direto (máximo de 2 a 3 lines).
+    3. Mantenha o texto curto e direto (máximo de 2 a 3 linhas).
     4. Devolva APENAS o texto final pronto para o currículo, sem aspas ou introduções.
     """
     resposta = client.models.generate_content(model='gemini-flash-latest', contents=prompt)
     return resposta.text.strip()
 
+# Cérebro 3: NOVO - Para corrigir as Competências (Soft Skills)
 def melhorar_soft_skills_ia(texto_bruto):
     client = genai.Client(api_key=CHAVE_API_GEMINI.strip())
     prompt = f"""
@@ -171,6 +184,7 @@ def melhorar_soft_skills_ia(texto_bruto):
 # --- 4. INTERFACE STREAMLIT ---
 st.set_page_config(page_title="DevStart - Gerador de Currículo", layout="wide")
 
+# --- ECRÃ DE BOAS-VINDAS E APRESENTAÇÃO ---
 st.title("🚀 Bem-vindo ao DevStart Currículos")
 st.info("""
 **O nosso objetivo é ajudar a estruturar da melhor forma o seu currículo!**
@@ -182,15 +196,24 @@ garantindo que os robôs dos recrutadores consigam ler as suas informações per
 
 st.markdown("---")
 
-# --- JORNADA ---
+# --- A GRANDE ESCOLHA (DIVISÃO DE JORNADA) ---
 st.subheader("Para começarmos, possui experiência profissional?")
-opcoes_jornada = ["Sim, possuo experiência profissional", "Não, estou em busca do meu primeiro emprego"]
-escolha_jornada = st.radio("Selecione uma opção:", opcoes_jornada, label_visibility="collapsed")
+
+opcoes_jornada = [
+    "Sim, possuo experiência profissional", 
+    "Não, estou em busca do meu primeiro emprego"
+]
+
+escolha_jornada = st.radio(
+    "Selecione uma opção:", 
+    opcoes_jornada,
+    label_visibility="collapsed"
+)
 
 st.markdown("---")
 st.write("### Preencha os seus dados abaixo:")
 
-# --- DADOS PESSOAIS ---
+# --- DADOS PESSOAIS (COMUM) ---
 st.subheader("👤 1. Dados Pessoais e Contato")
 col_p1, col_p2 = st.columns(2)
 with col_p1:
@@ -202,63 +225,51 @@ with col_p2:
     cidade = st.text_input("Cidade/UF", placeholder="Ex: São Paulo - SP")
     linkedin = st.text_input("LinkedIn (Opcional)", placeholder="linkedin.com/in/seu-perfil")
 
-# --- FORMAÇÃO E CURSOS ---
+# --- FORMAÇÃO E CURSOS (COMUM) ---
 st.subheader("🎓 2. Formação e Cursos")
-opcoes_escolaridade = ["Sim, possuo escolaridade formal", "Não possuo escolaridade formal"]
+
+opcoes_escolaridade = [
+    "Sim, possuo escolaridade formal",
+    "Não possuo escolaridade formal"
+]
 escolha_formacao = st.radio("Possui alguma formação académica ou escolar?", opcoes_escolaridade)
 
 local_estudo = ""
 status_estudo = ""
 curso_estudo = ""
 data_conclusao = ""
-tipo_formacao_titulo = "FORMAÇÃO ESCOLAR"
 
 if escolha_formacao == opcoes_escolaridade[0]:
     col_f1, col_f2 = st.columns(2)
     with col_f1:
-        local_estudo = st.text_input("Universidade/Escola", placeholder="Ex: E.E. Santa Clara ou Faculdade Cruzeiro do Sul")
-        nivel_estudo = st.selectbox("Nível de Escolaridade", ["Ensino Médio", "Ensino Superior", "Ensino Fundamental", "Técnico / Pós-Graduação"])
-    with col_f2:
-        # Se for superior/técnico, pede o curso. Se for básico, preenche automaticamente com o nível.
-        if nivel_estudo in ["Ensino Superior", "Técnico / Pós-Graduação"]:
-            curso_estudo = st.text_input("Curso", placeholder="Ex: Ciência da Computação")
-        else:
-            curso_estudo = nivel_estudo
-            
+        local_estudo = st.text_input("Universidade/Escola", placeholder="Ex: Universidade Cruzeiro do Sul")
         status_estudo = st.selectbox("Status", ["Concluído", "Em andamento", "Trancado", "Incompleto"])
-        data_conclusao = st.text_input("Data de Conclusão / Previsão", placeholder="Ex: Dezembro/2021 ou 2028")
-
-    # Define qual será o título impresso no PDF
-    if nivel_estudo in ["Ensino Médio", "Ensino Fundamental"]:
-        tipo_formacao_titulo = "FORMAÇÃO ESCOLAR"
-    else:
-        tipo_formacao_titulo = "FORMAÇÃO ACADÊMICA"
+    with col_f2:
+        curso_estudo = st.text_input("Curso / Nível", placeholder="Ex: Ciência da Computação ou Ensino Médio")
+        data_conclusao = st.text_input("Data de Conclusão / Previsão", placeholder="Ex: Dezembro/2028 ou 2020")
 else:
     st.info("Sem problemas! Vamos focar nos seus cursos extras, habilidades e experiências para destacar o seu perfil.")
 
-# Ajuste no placeholder para instruir o formato correto
-certificacoes = st.text_area(
-    "Cursos Extras (um por linha) - Opcional", 
-    placeholder="Digite exatamente no formato: Nome do Curso - Nome da Instituição\nEx: Informática Básica - Microcamp\nAtendimento ao Cliente - SENAC"
-)
+certificacoes = st.text_area("Cursos Extras (um por linha) - Opcional", placeholder="Ex: Pacote Office - Fundação Bradesco\nInglês Básico - Fisk")
 
-# --- SEÇÃO DINÂMICA ---
+# --- SECÇÃO DINÂMICA (DEPENDE DA ESCOLHA DE EXPERIÊNCIA) ---
 tem_experiencia = (escolha_jornada == opcoes_jornada[0])
+
 exp_texto = ""
 objetivo = ""
 soft_skills = ""
 
 if tem_experiencia:
     st.subheader("💼 3. Experiência Profissional")
-    st.write("Escreva como se estivesse a conversar. A IA vai transformar isso em algo profissional!")
+    st.write("Escreva como se estivesse a conversar. Ex: 'Trabalhei de atendente de janeiro a agosto de 2024 na loja X, eu fechava caixa e ajudava clientes no zap'. A IA vai transformar isso em algo profissional!")
     exp_texto = st.text_area("Descreva as suas experiências:", height=150)
 else:
     st.subheader("🎯 3. Objetivo e Competências")
-    st.write("Como procura o primeiro emprego, vamos focar no seu perfil e vontade de aprender. A Inteligência Artificial vai deixar num tom profissional!")
-    objetivo = st.text_input("Qual o seu objective profissional?", placeholder="Ex: Busco minha primeira oportunidade na área de administração...")
+    st.write("Como procura o primeiro emprego, vamos focar no seu perfil e vontade de aprender. Escreva as suas informações de forma simples e a nossa Inteligência Artificial vai deixá-las num tom profissional!")
+    objetivo = st.text_input("Qual o seu objetivo profissional?", placeholder="Ex: Busco minha primeira oportunidade na área de administração...")
     soft_skills = st.text_area(
         "Quais são as suas competências? (Soft Skills - Separe por vírgula ou Enter)", 
-        placeholder="Ex: Sou esforçado, aprendo rápido, trabalho em equipe...",
+        placeholder="Ex: Sou isforçado, pego peso, chego no orario...",
         height=100
     )
 
@@ -275,12 +286,14 @@ if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
             objetivo_final = objetivo
             soft_skills_final = soft_skills
             
+            # --- ACIONA A IA PARA EXPERIÊNCIA ---
             if tem_experiencia and exp_texto.strip() != "":
                 try:
                     texto_experiencia_final = melhorar_experiencia_ia(exp_texto)
                 except Exception as e:
                     st.error(f"Erro ao conectar com a IA (Experiência). (Detalhes: {e})")
                     
+            # --- ACIONA A IA PARA O OBJETIVO E SKILLS ---
             elif not tem_experiencia:
                 if objetivo.strip() != "":
                     try:
@@ -294,12 +307,12 @@ if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
                     except Exception as e:
                         st.error(f"Erro ao conectar com a IA (Competências). (Detalhes: {e})")
 
+            # Montando a estrutura para o PDF
             dados_usuario = {
-                "nome": nome, "email": email, "telefone": telephone if 'telephone' in locals() else telefone, "cidade": cidade, "idade": idade, "linkedin": linkedin,
+                "nome": nome, "email": email, "telefone": telefone, "cidade": cidade, "idade": idade, "linkedin": linkedin,
                 "objetivo": objetivo_final, 
-                "soft_skills": soft_skills_final, 
+                "soft_skills": soft_skills_final, # Passando as competências já processadas pela IA
                 "possui_formacao": (escolha_formacao == opcoes_escolaridade[0]),
-                "tipo_formacao_titulo": tipo_formacao_titulo,
                 "formacao_local": local_estudo,
                 "formacao_curso": curso_estudo,
                 "formacao_status": status_estudo,
@@ -309,6 +322,7 @@ if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
                 "cursos": certificacoes.split('\n')
             }
             
+            # Gera o PDF
             arquivo = gerar_curriculo_ats(dados_usuario)
             
             st.success("Currículo pronto!")
