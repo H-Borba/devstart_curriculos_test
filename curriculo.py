@@ -63,17 +63,24 @@ def gerar_curriculo_ats(dados):
                     pdf.cell(0, 6, f"- {hab.strip()}", ln=True)
             pdf.ln(5)
 
-    # --- Formação Acadêmica/Escolar (COMUM AOS DOIS) ---
-    if dados['formacao_local'].strip():
+    # --- Formação Acadêmica/Escolar (AGORA COM LÓGICA DE DATAS) ---
+    if dados['possui_formacao'] and dados['formacao_local'].strip():
         pdf.section_title("FORMAÇÃO ACADÊMICA")
         pdf.set_font('Arial', 'B', 11)
         pdf.cell(0, 6, dados['formacao_local'], ln=True)
         
-        # Monta a linha do curso e adiciona a data caso o usuário tenha preenchido
         pdf.set_font('Arial', '', 11)
         linha_curso = f"{dados['formacao_curso']} - {dados['formacao_status']}"
+        
+        # A Mágica da Formatação de Datas feita em Python
         if dados['formacao_data'].strip():
-            linha_curso += f" ({dados['formacao_data']})"
+            if dados['formacao_status'] == "Em andamento":
+                linha_curso += f" (Previsão de conclusão: {dados['formacao_data']})"
+            elif dados['formacao_status'] == "Concluído":
+                linha_curso += f" (Concluído em {dados['formacao_data']})"
+            else:
+                # Fallback para Trancado/Incompleto
+                linha_curso += f" ({dados['formacao_data']})"
             
         pdf.cell(0, 6, linha_curso, ln=True)
         pdf.ln(5)
@@ -191,17 +198,33 @@ with col_p2:
 
 # --- FORMAÇÃO E CURSOS (COMUM) ---
 st.subheader("🎓 2. Formação e Cursos")
-col_f1, col_f2 = st.columns(2)
-with col_f1:
-    local_estudo = st.text_input("Universidade/Escola", placeholder="Ex: Universidade Cruzeiro do Sul")
-    status_estudo = st.selectbox("Status", ["Concluído", "Em andamento", "Trancado", "Incompleto"])
-with col_f2:
-    curso_estudo = st.text_input("Curso / Nível", placeholder="Ex: Ciência da Computação ou Ensino Médio")
-    data_conclusao = st.text_input("Data de Conclusão / Previsão", placeholder="Ex: Dezembro/2028 ou 2020")
+
+# Nova opção para quem não tem escolaridade
+opcoes_escolaridade = [
+    "Sim, possuo escolaridade formal",
+    "Não possuo escolaridade formal"
+]
+escolha_formacao = st.radio("Você possui alguma formação acadêmica ou escolar?", opcoes_escolaridade)
+
+local_estudo = ""
+status_estudo = ""
+curso_estudo = ""
+data_conclusao = ""
+
+if escolha_formacao == opcoes_escolaridade[0]:
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        local_estudo = st.text_input("Universidade/Escola", placeholder="Ex: Universidade Cruzeiro do Sul")
+        status_estudo = st.selectbox("Status", ["Concluído", "Em andamento", "Trancado", "Incompleto"])
+    with col_f2:
+        curso_estudo = st.text_input("Curso / Nível", placeholder="Ex: Ciência da Computação ou Ensino Médio")
+        data_conclusao = st.text_input("Data de Conclusão / Previsão", placeholder="Ex: Dezembro/2028 ou 2020")
+else:
+    st.info("Sem problemas! Vamos focar nos seus cursos extras, habilidades e experiências para destacar o seu perfil.")
 
 certificacoes = st.text_area("Cursos Extras (um por linha) - Opcional", placeholder="Ex: Pacote Office - Fundação Bradesco\nInglês Básico - Fisk")
 
-# --- SEÇÃO DINÂMICA (DEPENDE DA ESCOLHA) ---
+# --- SEÇÃO DINÂMICA (DEPENDE DA ESCOLHA DE EXPERIÊNCIA) ---
 tem_experiencia = (escolha_jornada == opcoes_jornada[0])
 
 exp_texto = ""
@@ -228,7 +251,6 @@ if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
     if not nome:
         st.error("Por favor, preencha pelo menos o seu Nome Completo.")
     elif not CHAVE_API_GEMINI and (exp_texto.strip() != "" or objetivo.strip() != ""):
-        # Só dá erro de chave se a pessoa realmente digitou algo para a IA processar
         st.error("Erro: A chave da API não foi encontrada nas configurações (Secrets) do Streamlit.")
     else:
         with st.spinner("Construindo o seu currículo (A Inteligência Artificial está trabalhando)..."):
@@ -252,8 +274,9 @@ if st.button("✨ Gerar Currículo DevStart", use_container_width=True):
             # Montando a estrutura para o PDF
             dados_usuario = {
                 "nome": nome, "email": email, "telefone": telefone, "cidade": cidade, "idade": idade, "linkedin": linkedin,
-                "objetivo": objetivo_final, # Passando o objetivo processado pela IA
+                "objetivo": objetivo_final, 
                 "soft_skills": soft_skills,
+                "possui_formacao": (escolha_formacao == opcoes_escolaridade[0]),
                 "formacao_local": local_estudo,
                 "formacao_curso": curso_estudo,
                 "formacao_status": status_estudo,
